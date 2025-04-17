@@ -28,3 +28,34 @@ jobs:
           sleep 5
           curl http://localhost:5000
 
+
+
+name: Deploy to VM via SSH
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: SSH and deploy app
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VM_HOST }}
+          port: ${{ secrets.VM_PORT }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          script: |
+            cd ~/devops-flask-app
+            git pull origin main
+            podman stop flaskapp || true
+            podman rm flaskapp || true
+            podman build -t devops-flask-app .
+            podman run -d --name flaskapp -p 5000:5000 devops-flask-app
